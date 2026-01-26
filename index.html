@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Title made invisible -->
+    <title> </title>
+    
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Professional Map (Leaflet) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #ef4444;
+            --bg-light: #f8fafc;
+            --card-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.08);
+        }
+
+        body { 
+            font-family: 'Hind Siliguri', sans-serif; 
+            background-color: #ffffff; 
+            color: #1e293b;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        /* --- IMAGE PULSE EFFECT --- */
+        @keyframes imagePulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .food-card img {
+            animation: imagePulse 3s ease-in-out infinite;
+            display: block;
+        }
+
+        /* --- PROFESSIONAL QTY BUTTONS STYLING --- */
+        .qty-container {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 4px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .btn-qty {
+            width: 36px;
+            height: 36px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 12px;
+        }
+
+        .btn-qty-minus {
+            background: white;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .btn-qty-plus {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-qty:active {
+            transform: scale(0.9);
+        }
+
+        .qty-text {
+            font-weight: 900;
+            font-size: 16px;
+            color: #1e293b;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        /* -------------------------------------- */
+
+        .adv-container {
+            background: linear-gradient(90deg, #ef4444 0%, #dc2626 50%, #991b1b 100%);
+            height: 34px;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            position: sticky;
+            top: 0;
+            z-index: 1500;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .adv-scroller {
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            animation: marquee 25s linear infinite;
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 11px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .adv-item {
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .adv-dot {
+            width: 5px;
+            height: 5px;
+            background: #fca5a5;
+            border-radius: 50%;
+            margin: 0 15px;
+            box-shadow: 0 0 10px #ffffff;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .app-view { display: none; min-height: 100vh; }
+        .app-view.active { display: block; }
+        .auth-view { display: none; min-height: 100vh; background: #ffffff; flex-direction: column; }
+        .auth-view.active { display: flex; }
+
+        .logo-circle {
+            background: var(--primary);
+            width: 120px; height: 120px;
+            border-radius: 40px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 30px;
+            box-shadow: 0 15px 35px rgba(239, 68, 68, 0.3);
+        }
+
+        .input-container {
+            background: #f1f5f9; border-radius: 25px; padding: 22px 30px;
+            margin-bottom: 20px; border: 2px solid transparent; transition: 0.3s;
+        }
+
+        .input-container:focus-within {
+            background: white; border-color: var(--primary);
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.05);
+        }
+
+        .input-container input, .input-container textarea {
+            background: transparent; outline: none; width: 100%;
+            font-weight: 700; font-size: 17px; color: #334155;
+        }
+
+        .btn-action {
+            background: var(--primary); color: white; padding: 22px;
+            border-radius: 25px; font-weight: 900; font-size: 16px;
+            text-transform: uppercase; box-shadow: 0 15px 35px rgba(239, 68, 68, 0.25);
+            width: 100%; transition: 0.3s;
+        }
+
+        #reg-map, #profile-map {
+            height: 400px; border-radius: 40px;
+            margin: 20px 0; border: 8px solid #f1f5f9;
+            z-index: 10;
+        }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px); height: 95px;
+            display: flex; justify-content: space-around; align-items: center;
+            border-top: 1px solid #f1f5f9; border-radius: 40px 40px 0 0;
+            z-index: 1000;
+        }
+
+        .nav-item { color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .nav-item.active-nav { color: var(--primary); font-weight: 900; }
+
+        .search-box {
+            background: #ecfdf5; 
+            border-radius: 25px; padding: 20px 25px;
+            display: flex; align-items: center; gap: 15px; margin: 25px 0;
+            border: 1px solid #d1fae5; 
+        }
+
+        .res-card {
+            background: white; border-radius: 40px; padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1.5px solid #f1f5f9;
+            display: flex; align-items: center; gap: 20px; margin-bottom: 15px;
+            transition: 0.3s;
+            position: relative;
+        }
+
+        .res-card.is-off {
+            filter: grayscale(1);
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        .res-card.is-off .closed-label {
+            display: block !important;
+        }
+
+        .food-card {
+            background: white; border-radius: 35px; padding: 15px;
+            border: 1px solid #f1f5f9; box-shadow: 0 5px 15px rgba(0,0,0,0.02);
+            display: flex; align-items: center; gap: 15px;
+        }
+
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-up { animation: slideInUp 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
+
+        .closed-overlay { position: fixed; inset: 0; background: #ffffff; z-index: 9999; display: none !important; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        .order-action-btn {
+            height: 42px;
+            padding: 0 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-radius: 14px;
+            transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            font-weight: 900;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        .order-action-btn:active { transform: scale(0.9); }
+
+        #tracking-modal {
+            position: fixed; inset: 0; background: white; z-index: 5000;
+            display: none; flex-direction: column;
+        }
+        #tracking-map { flex: 1; width: 100%; }
+        .track-header { padding: 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid #eee; }
+
+        #notification-toast {
+            position: fixed; top: -150px; left: 15px; right: 15px;
+            background: white; border-radius: 30px; padding: 20px;
+            box-shadow: 0 25px 60px -12px rgba(0,0,0,0.25);
+            z-index: 10000; display: flex; align-items: center; gap: 18px;
+            transition: 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        #notification-toast.show { top: 20px; }
+
+        .chat-bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; margin-bottom: 10px; font-size: 14px; font-weight: 600; line-height: 1.4; }
+        .chat-sent { background: #ef4444; color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); }
+        .chat-received { background: #f1f5f9; color: #1e293b; align-self: flex-start; border-bottom-left-radius: 4px; }
+        
+        .signup-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #f1f5f9;
+        }
+        .btn-signup-outline {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 20px;
+            border: 2px solid #fee2e2;
+            border-radius: 25px;
+            color: var(--primary);
+            font-weight: 900;
+            font-size: 15px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            background: #fffafa;
+        }
+        .btn-signup-outline:active {
+            background: #fee2e2;
+            transform: scale(0.98);
+        }
+
+        .star-container { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
+        .star-btn { font-size: 35px; color: #cbd5e1; transition: 0.2s; cursor: pointer; }
+        .star-btn.active { color: #fbbf24; transform: scale(1.2); }
+        .rating-badge { background: #fff7ed; color: #f59e0b; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 900; display: flex; align-items: center; gap: 4px; border: 1px solid #ffedd5; }
+        
+        .map-instruction {
+            background: #eff6ff;
+            color: #1d4ed8;
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+            border: 1px dashed #bfdbfe;
+        }
+    </style>
+</head>
+<body onclick="enableAudio()">
+
+    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <audio id="chat-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
+
+    <div id="notification-toast">
+        <div id="notif-icon-bg" class="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg shrink-0">
+            <i id="notif-icon" class="fas fa-bell"></i>
+        </div>
+        <div class="flex-1">
+            <h4 id="notif-title" class="font-black text-[16px] italic leading-none text-slate-800 uppercase tracking-tighter">অর্ডার আপডেট</h4>
+            <p id="notif-msg" class="text-[13px] font-bold text-slate-500 mt-2 leading-tight">আপনার অর্ডারের অবস্থা পরিবর্তিত হয়েছে।</p>
+        </div>
+        <button onclick="hideNotif()" class="text-slate-300 hover:text-red-500 transition-colors px-2"><i class="fas fa-times text-xl"></i></button>
+    </div>
+
+    <!-- Rating Modal -->
+    <div id="rating-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[8000] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-md rounded-[3rem] p-8 animate-up">
+            <div class="text-center">
+                <div class="w-20 h-20 bg-yellow-100 text-yellow-500 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-4">
+                    <i class="fas fa-star"></i>
+                </div>
+                <h3 class="text-2xl font-black italic">Rate Your Experience</h3>
+                <p class="text-slate-400 font-bold text-sm mt-1">খাবার ও ডেলিভারি কেমন ছিল?</p>
+                
+                <div class="star-container" id="star-selector">
+                    <i class="fas fa-star star-btn" onclick="setRating(1)"></i>
+                    <i class="fas fa-star star-btn" onclick="setRating(2)"></i>
+                    <i class="fas fa-star star-btn" onclick="setRating(3)"></i>
+                    <i class="fas fa-star star-btn" onclick="setRating(4)"></i>
+                    <i class="fas fa-star star-btn" onclick="setRating(5)"></i>
+                </div>
+
+                <div class="input-container mt-4 !py-4">
+                    <textarea id="rating-comment" placeholder="আপনার মতামত লিখুন (ঐচ্ছিক)" class="resize-none h-20 font-bold text-sm"></textarea>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button onclick="closeRatingModal()" class="flex-1 py-5 rounded-2xl bg-slate-100 text-slate-500 font-black uppercase text-xs">পরে দেব</button>
+                    <button onclick="submitRating()" class="flex-[2] btn-action !py-5">Submit Rating</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Store Closed Screen -->
+    <div id="store-closed-screen" class="closed-overlay hidden">
+        <i class="fas fa-store-slash text-6xl text-red-500 mb-6"></i>
+    </div>
+
+    <!-- Tracking Modal -->
+    <div id="tracking-modal">
+        <div class="track-header">
+            <button onclick="closeTracking()" class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
+            <div>
+                <h3 class="font-black text-lg italic leading-none">Order Tracking</h3>
+                <p id="track-status" class="text-[10px] text-emerald-500 font-black uppercase tracking-widest mt-1">লাইভ লোকেশন ট্র্যাকিং</p>
+            </div>
+        </div>
+        <div id="tracking-map"></div>
+        <div class="p-6 bg-white shadow-[0_-10px_30px_rgba(0,0,0,0.05)] rounded-t-[3rem]">
+             <div class="flex items-center gap-4">
+                 <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center text-red-500 text-2xl">
+                     <i class="fas fa-motorcycle"></i>
+                 </div>
+                 <div>
+                     <p class="text-[10px] font-black text-slate-400 uppercase">Delivery Hero</p>
+                     <h4 class="font-black text-xl italic" id="track-rider-name">Rider is assigning...</h4>
+                 </div>
+                 <div class="ml-auto flex gap-2">
+                    <button id="track-chat-btn" class="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-200"><i class="fas fa-comment-dots"></i></button>
+                    <a id="track-rider-call" href="#" class="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-200"><i class="fas fa-phone"></i></a>
+                 </div>
+             </div>
+        </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div id="chat-modal" class="fixed inset-0 bg-white z-[6000] hidden flex flex-col">
+        <header class="p-6 border-b flex justify-between items-center bg-white sticky top-0">
+            <div class="flex items-center gap-4">
+                <button onclick="closeChat()" class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border"><i class="fas fa-arrow-left"></i></button>
+                <div>
+                    <h3 id="chat-title" class="font-black text-lg italic leading-none uppercase">Rider Chat</h3>
+                    <p class="text-[10px] text-emerald-500 font-black uppercase tracking-widest mt-1">Online</p>
+                </div>
+            </div>
+            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-500"><i class="fas fa-headset"></i></div>
+        </header>
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-6 flex flex-col bg-slate-50/50"></div>
+        <div class="p-6 bg-white border-t flex gap-3 items-center">
+            <div class="flex-1 bg-slate-100 rounded-3xl px-6 py-4 border focus-within:border-red-500 transition-all">
+                <input type="text" id="chat-input" placeholder="মেসেজ লিখুন..." class="bg-transparent outline-none w-full font-bold text-slate-700">
+            </div>
+            <button onclick="sendMessage()" class="w-14 h-14 bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-red-200 active:scale-90 transition-all">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Login View -->
+    <div id="view-login" class="auth-view active p-10 justify-center text-center">
+        <div class="logo-circle animate-up">
+            <i class="fas fa-utensils text-white text-5xl"></i>
+        </div>
+        
+        <h1 class="text-4xl font-black italic mb-2 tracking-tighter">Are you hungry <span class="text-red-500">?</span></h1>
+        <p class="text-slate-400 font-bold mb-16">আপনার পছন্দের খাবার এখন হাতের নাগালে।</p>
+        
+        <div class="max-w-md mx-auto w-full">
+            <div class="input-container flex items-center gap-4">
+                <i class="fas fa-phone-alt text-red-500"></i>
+                <input type="number" id="login-phone" placeholder="017XXXXXXXX" class="font-black text-xl">
+            </div>
+            <button onclick="handleLogin()" class="btn-action">Login Now</button>
+            
+            <div class="signup-section animate-up">
+                <p class="text-slate-400 font-bold text-sm mb-4">আপনার কি কোনো অ্যাকাউন্ট নেই?</p>
+                <button onclick="showAuth('register')" class="btn-signup-outline">
+                    <i class="fas fa-user-plus"></i> নতুন অ্যাকাউন্ট তৈরি করুন 👈
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register View -->
+    <div id="view-register" class="auth-view p-8 pt-12 overflow-y-auto">
+        <button onclick="showAuth('login')" class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-8 border"><i class="fas fa-arrow-left text-slate-400"></i></button>
+        <h1 class="text-3xl font-black text-red-600 italic mb-10">নতুন অ্যাকাউন্ট</h1>
+        <div class="space-y-4 animate-up">
+            <div class="input-container"><input type="text" id="reg-name" placeholder="আপনার নাম"></div>
+            <div class="input-container"><input type="number" id="reg-phone" placeholder="মোবাইল নম্বর"></div>
+            <div class="input-container"><input type="text" id="reg-house" placeholder="বাসা নং / ফ্ল্যাট নং"></div>
+            <div class="input-container"><input type="text" id="reg-address" placeholder="ম্যাপ থেকে ঠিকানা লোড হবে..." readonly></div>
+            
+            <div class="flex flex-col items-center -mt-2 mb-2">
+                <p class="text-[11px] font-black text-emerald-600 uppercase mb-2 animate-pulse">লোকেশন অটোমেটিক সেট করতে নিচের বাটনে ক্লিক করুন 👇</p>
+                <button onclick="autoLocate('reg')" class="bg-emerald-600 text-white font-black px-8 py-4 rounded-[2rem] shadow-xl active:scale-95 transition-all text-sm uppercase flex items-center gap-3 border-4 border-white">
+                    <i class="fas fa-hand-pointer text-lg animate-bounce"></i> Auto Detect My Location
+                </button>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-[2.5rem] border mb-6">
+                <p class="map-instruction"><i class="fas fa-hand-pointer mr-2"></i> ম্যাপের লাল পিনটি টেনে আপনার বাসার সঠিক অবস্থানের ওপর বসান</p>
+                <div id="reg-map"></div>
+            </div>
+            <button onclick="handleRegistration()" class="btn-action">Create Account</button>
+        </div>
+    </div>
+
+    <!-- Main App View -->
+    <div id="view-customer" class="app-view">
+        <div class="adv-container">
+            <div class="adv-scroller" id="adv-notice-wrapper">
+                <div class="adv-item"><i class="fas fa-bolt-lightning mr-2"></i> <span id="adv-notice-text">✨ No Extra Tax, No Hidden VAT! Pay Only For Your Food. ✨</span></div>
+                <div class="adv-dot"></div>
+                <div class="adv-item"><i class="fas fa-star mr-2"></i> Best Quality Food Delivery in Town</div>
+                <div class="adv-dot"></div>
+                <div class="adv-item"><i class="fas fa-bolt-lightning mr-2"></i> <span id="adv-notice-text-dup">✨ No Extra Tax, No Hidden VAT! Pay Only For Your Food. ✨</span></div>
+                <div class="adv-dot"></div>
+                <div class="adv-item"><i class="fas fa-star mr-2"></i> Best Quality Food Delivery in Town</div>
+                <div class="adv-dot"></div>
+            </div>
+        </div>
+
+        <div id="page-home" class="page-content pb-40">
+            <div class="px-6 pt-6">
+                <div class="mt-6 mb-2">
+                    <h2 class="text-3xl font-black italic tracking-tighter text-slate-800 leading-none">Are you hungry?</h2>
+                </div>
+            </div>
+
+            <div class="sticky top-[34px] bg-white/95 backdrop-blur-md px-6 py-2 z-[1100] border-b border-transparent">
+                <div class="search-box !my-0">
+                    <i class="fas fa-search text-emerald-500"></i>
+                    <input type="text" id="res-search-input" oninput="filterRes(this.value)" placeholder="রেস্টুরেন্ট সার্চ করুন..." class="bg-transparent outline-none w-full font-bold">
+                </div>
+            </div>
+
+            <div id="res-list" class="px-6 grid gap-1 animate-up mt-4"></div>
+        </div>
+
+        <div id="page-orders" class="page-content p-6 pb-40 hidden">
+            <h2 class="text-3xl font-black italic mb-8">My orders</h2>
+            <div id="my-orders-list" class="grid gap-5"></div>
+        </div>
+
+        <div id="page-profile" class="page-content p-6 pb-40 hidden">
+            <h2 class="text-3xl font-black italic mb-8">প্রোফাইল সেটিংস</h2>
+            <div class="space-y-4">
+                <div class="input-container"><input type="text" id="prof-name"></div>
+                <div class="input-container opacity-60"><input type="number" id="prof-phone" readonly></div>
+                <div class="input-container"><input type="text" id="prof-house" placeholder="বাসা নং / ফ্ল্যাট নং"></div>
+                <div class="input-container"><input type="text" id="prof-address" readonly></div>
+                
+                <div class="flex flex-col items-center -mt-2 mb-2">
+                    <p class="text-[11px] font-black text-emerald-600 uppercase mb-2 animate-pulse">লোকেশন আপডেট করতে নিচের বাটনে ক্লিক করুন 👇</p>
+                    <button onclick="autoLocate('prof')" class="bg-emerald-600 text-white font-black px-8 py-4 rounded-[2rem] shadow-xl active:scale-95 transition-all text-sm uppercase flex items-center gap-3 border-4 border-white">
+                        <i class="fas fa-hand-pointer text-lg animate-bounce"></i> Auto Update Address
+                    </button>
+                </div>
+
+                <p class="map-instruction"><i class="fas fa-hand-pointer mr-2"></i> ম্যাপের লাল পিনটি টেনে আপনার বাসার সঠিক অবস্থানের ওপর বসান</p>
+                <div id="profile-map"></div>
+                <button onclick="updateProfile()" class="btn-action bg-emerald-500">সেভ করুন</button>
+                <button onclick="handleLogout()" class="w-full text-red-500 font-black text-sm mt-6 uppercase">লগ আউট</button>
+            </div>
+        </div>
+
+        <div id="page-menu" class="page-content hidden">
+            <div class="sticky top-[34px] bg-white/95 backdrop-blur-md p-6 pb-2 z-[1400] border-b">
+                <div class="flex items-center gap-5 mb-4">
+                    <button onclick="switchCustPage('home')" class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border"><i class="fas fa-arrow-left"></i></button>
+                    <h2 id="menu-res-title" class="font-black text-xl italic uppercase truncate">Menu</h2>
+                </div>
+                <div class="search-box !my-0 !py-3 !px-5 bg-slate-50 border-slate-200">
+                    <i class="fas fa-search text-red-400"></i>
+                    <input type="text" id="food-search-input" oninput="filterFoodItems(this.value)" placeholder="খাবার খুঁজুন (যেমন: বার্গার, পিৎজা...)" class="bg-transparent outline-none w-full font-bold text-sm">
+                </div>
+            </div>
+            <div id="food-list-container" class="p-6 grid gap-4 pb-48"></div>
+        </div>
+
+        <nav class="bottom-nav">
+            <button onclick="switchCustPage('home')" id="nav-home" class="nav-item active-nav"><i class="fas fa-home text-2xl"></i><span class="text-[10px] uppercase font-black">Home</span></button>
+            <button onclick="switchCustPage('orders')" id="nav-orders" class="nav-item"><i class="fas fa-receipt text-2xl"></i><span class="text-[10px] uppercase font-black">Orders</span></button>
+            <button onclick="switchCustPage('profile')" id="nav-profile" class="nav-item"><i class="fas fa-user-circle text-2xl"></i><span class="text-[10px] uppercase font-black">Profile</span></button>
+        </nav>
+
+        <div id="cart-float" class="hidden fixed bottom-28 left-6 right-6 bg-gray-900 text-white p-5 rounded-[2.5rem] flex justify-between items-center z-[100] shadow-2xl animate-up">
+            <div>
+                <p id="cart-qty" class="text-[9px] font-bold text-slate-400 uppercase">0 টি খাবার</p>
+                <p id="cart-sum" class="text-2xl font-black text-red-500 italic">৳ 0</p>
+            </div>
+            <button onclick="openCheckout()" class="bg-red-600 px-8 py-3 rounded-2xl font-black text-sm uppercase italic">চেকআউট</button>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkout-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-xl z-[2000] flex items-end">
+        <div class="bg-white w-full rounded-t-[4rem] p-8 animate-up max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-black italic">Order Review</h3>
+                <button onclick="document.getElementById('checkout-modal').classList.add('hidden')" class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div id="free-delivery-banner" class="mb-4 bg-emerald-50 border border-emerald-100 p-3 rounded-2xl text-center hidden">
+                <p class="text-[11px] font-black text-emerald-600 uppercase italic"><i class="fas fa-gift mr-2"></i> কুপন বা বেশি টাকার অর্ডারে ডেলিভারি ফ্রি!</p>
+            </div>
+
+            <div id="checkout-items-list" class="mb-6 divide-y border-t border-b border-dashed"></div>
+
+            <div class="mb-6">
+                <p class="text-[10px] font-black text-slate-400 uppercase mb-3">Apply Coupon Code</p>
+                <div class="flex gap-2">
+                    <input type="text" id="coupon-input" placeholder="কুপন কোড দিন" class="flex-1 bg-slate-50 border rounded-2xl px-5 py-3 font-bold text-sm outline-none focus:border-red-400">
+                    <button onclick="applyCoupon()" class="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase">Apply</button>
+                </div>
+                <p id="coupon-msg" class="text-[10px] font-bold mt-2 hidden"></p>
+            </div>
+
+            <div class="mb-6">
+                <p class="text-[10px] font-black text-slate-400 uppercase mb-3">Add a tip for rider</p>
+                <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="tip-options-container">
+                    <button onclick="setTip(20)" id="tip-20" class="tip-btn px-6 py-3 rounded-2xl bg-slate-50 border border-slate-100 font-black text-sm transition-all">৳ 20</button>
+                    <button onclick="setTip(40)" id="tip-40" class="tip-btn px-6 py-3 rounded-2xl bg-slate-50 border border-slate-100 font-black text-sm transition-all">৳ 40</button>
+                    <button onclick="setTip(60)" id="tip-60" class="tip-btn px-6 py-3 rounded-2xl bg-slate-50 border border-slate-100 font-black text-sm transition-all">৳ 60</button>
+                </div>
+            </div>
+            <div class="bg-slate-50 p-6 rounded-[2.5rem] mb-6 space-y-2">
+                <div class="flex justify-between font-bold text-slate-400 text-xs"><span>Subtotal</span><span id="bill-sub">৳ 0</span></div>
+                <div class="flex justify-between font-bold text-blue-600 text-xs"><span>Delivery charges</span><span id="bill-delivery">৳ 0</span></div>
+                <div id="discount-row" class="hidden flex justify-between font-bold text-red-500 text-xs"><span>Discount</span><span id="bill-discount">- ৳ 0</span></div>
+                <div id="tip-row" class="hidden flex justify-between font-bold text-emerald-600 text-xs"><span>Rider Tip</span><span id="bill-tip">৳ 0</span></div>
+                <div class="flex justify-between text-2xl font-black pt-4 border-t"><span>Total bill</span><span id="final-bill-sum" class="text-red-600">৳ 0</span></div>
+            </div>
+            <button onclick="placeFinalOrder()" class="btn-action">Confirm Order.</button>
+            <button onclick="document.getElementById('checkout-modal').classList.add('hidden')" class="w-full mt-4 text-gray-400 font-bold text-xs uppercase">Go Back.</button>
+        </div>
+    </div>
+
+    <script>
+        const MAPTILER_KEY = "cOMWR960XrzMsoEW2ktI";
+        const TILE_URL = `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`;
+        const ATTRIBUTION = '&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_TytbX1kd4SKQ5uHZfd5XVGwdw0gzUOE",
+            authDomain: "feeling-hungry-102a9.firebaseapp.com",
+            databaseURL: "https://feeling-hungry-102a9-default-rtdb.firebaseio.com",
+            projectId: "feeling-hungry-102a9",
+            storageBucket: "feeling-hungry-102a9.firebasestorage.app",
+            messagingSenderId: "736201265500",
+            appId: "1:736201265500:web:7b7064b314247c02ad7199"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let user = null, cartData = {}, activeRes = null, resCache = [], riderList = [], menuCache = [];
+        let rMap, rMarker, pMap, pMarker, tMap;
+        let adminSettings = { adminDeliveryFee: 0, perKmFee: 0, isOpen: true, noticeText: "", isRiderAwareRanking: false, freeDeliveryLimit: 500 };
+        let selectedTip = 0, activeChatOrderId = null, appliedCoupon = null;
+        let lastKnownOrderStates = {}; 
+        let appStartTime = Date.now(); 
+        let riderMarker = null;
+        let riderListener = null;
+        let currentRating = 0, ratingOrderId = null, ratingResId = null;
+
+        function speakHungry() {
+            if ('speechSynthesis' in window) {
+                const msg = new SpeechSynthesisUtterance("As-salamu alaykum. Are you hungry? Welcome to my app.");
+                msg.lang = 'en-US';
+                msg.rate = 1.0;
+                msg.pitch = 1.0; 
+                window.speechSynthesis.speak(msg);
+            }
+        }
+
+        function enableAudio() {
+            const sound = document.getElementById('notif-sound');
+            sound.play().then(() => { sound.pause(); sound.currentTime = 0; }).catch(e => console.log("Audio ready"));
+        }
+
+        function syncAdminSettings() {
+            db.ref('appSettings').on('value', snap => {
+                const data = snap.val();
+                if(data) { 
+                    adminSettings = { ...adminSettings, ...data }; 
+                    if(data.noticeText) {
+                        document.getElementById('adv-notice-text').innerText = data.noticeText;
+                        document.getElementById('adv-notice-text-dup').innerText = data.noticeText;
+                    } 
+                }
+                document.getElementById('store-closed-screen').classList.add('hidden');
+                if(resCache.length > 0) renderResGrid(resCache);
+            });
+        }
+
+        function handleLogin() {
+            const ph = document.getElementById('login-phone').value; if(!ph) return alert("Phone needed");
+            db.ref('users/' + ph).once('value', snap => { 
+                if(snap.exists()){ 
+                    user = snap.val(); 
+                    if(user.isBlocked) return alert("আপনার অ্যাকাউন্টটি ব্লক করা হয়েছে!");
+                    localStorage.setItem('fh_user', JSON.stringify(user)); 
+                    startApp(); 
+                } else alert("অ্যাকাউন্ট পাওয়া যায়নি!"); 
+            });
+        }
+
+        function handleRegistration() {
+            const n = document.getElementById('reg-name').value, 
+                  p = document.getElementById('reg-phone').value, 
+                  h = document.getElementById('reg-house').value,
+                  a = document.getElementById('reg-address').value;
+            if(!n || !p || !a) return alert("সব ঘর পূরণ করুন!");
+            const pos = rMarker.getLatLng();
+            db.ref('users/'+p).set({ name: n, phone: p, house: h, address: a, lat: pos.lat, lng: pos.lng, isBlocked: false }).then(() => { alert("সফল হয়েছে!"); showAuth('login'); });
+        }
+
+        function startApp() { 
+            document.querySelectorAll('.auth-view, .app-view').forEach(v => v.classList.remove('active')); 
+            document.getElementById('view-customer').classList.add('active'); 
+            document.getElementById('prof-name').value = user.name; 
+            document.getElementById('prof-phone').value = user.phone; 
+            document.getElementById('prof-house').value = user.house || ""; 
+            document.getElementById('prof-address').value = user.address||""; 
+            syncAdminSettings(); 
+            loadData(); 
+            startOrderMonitor(); 
+            startChatMonitor(); 
+        }
+
+        function loadData() { 
+            db.ref('riders').on('value', snap => {
+                riderList = [];
+                snap.forEach(c => {
+                    const r = c.val();
+                    if(r.online && r.lat && r.lng) riderList.push(r);
+                });
+                if(resCache.length > 0) renderResGrid(resCache);
+            });
+
+            db.ref('restaurants').on('value', snap => { 
+                resCache = []; 
+                snap.forEach(c => { 
+                    const res = c.val();
+                    if(res.status === "APPROVED") resCache.push(res); 
+                }); 
+                renderResGrid(resCache); 
+            }); 
+        }
+
+        function renderResGrid(d) { 
+            const l = document.getElementById('res-list'); 
+            const searchQuery = document.getElementById('res-search-input').value.toLowerCase();
+            let filtered = d.filter(r => r.name.toLowerCase().includes(searchQuery));
+
+            filtered.sort((a, b) => {
+                if (adminSettings.isRiderAwareRanking) {
+                    let minDistanceA = Infinity;
+                    riderList.forEach(r => {
+                        const dist = getDistance(a.lat, a.lng, r.lat, r.lng);
+                        if(dist < minDistanceA) minDistanceA = dist;
+                    });
+                    let minDistanceB = Infinity;
+                    riderList.forEach(r => {
+                        const dist = getDistance(b.lat, b.lng, r.lat, r.lng);
+                        if(dist < minDistanceB) minDistanceB = dist;
+                    });
+                    if (minDistanceA <= 3 && minDistanceB > 3) return -1;
+                    if (minDistanceB <= 3 && minDistanceA > 3) return 1;
+                }
+                return (parseInt(a.rank) || 999) - (parseInt(b.rank) || 999);
+            });
+
+            l.innerHTML = ""; 
+            filtered.forEach(r => { 
+                let resToCustDist = user && user.lat ? getDistance(user.lat, user.lng, r.lat, r.lng) : 0;
+                let nearestRiderDist = Infinity;
+                riderList.forEach(rider => {
+                    const d = getDistance(r.lat, r.lng, rider.lat, rider.lng);
+                    if(d < nearestRiderDist) nearestRiderDist = d;
+                });
+                let basePrep = 15;
+                let riderPickupTime = nearestRiderDist !== Infinity ? nearestRiderDist * 4 : 10;
+                let deliveryTravelTime = resToCustDist * 5;
+                let totalMin = Math.round(basePrep + riderPickupTime + deliveryTravelTime);
+                let deliveryTimeRange = `${totalMin}-${totalMin + 10}`;
+                const isOff = r.isOff === true;
+                const riderNearby = nearestRiderDist <= 1.5;
+
+                const ratingText = r.avgRating ? `<span class="rating-badge"><i class="fas fa-star"></i> ${r.avgRating}</span>` : `<span class="rating-badge text-slate-400"><i class="fas fa-star"></i> New</span>`;
+
+                l.innerHTML += `
+                <div onclick="${isOff ? 'alert(\'এই রেস্টুরেন্টটি বর্তমানে বন্ধ আছে!\')' : `openMenu('${r.idNo}', '${r.name}')`}" 
+                     class="res-card active:scale-95 transition-all ${isOff ? 'is-off' : ''}">
+                    ${riderNearby ? '<span class="absolute -top-2 -right-2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-full shadow-lg z-10 animate-pulse uppercase tracking-tighter">Fast Delivery</span>' : ''}
+                    <img src="${r.logo||''}" class="w-20 h-20 rounded-3xl object-cover shadow-md">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start">
+                             <div>
+                                <h3 class="font-black text-xl italic uppercase text-slate-800">${r.name}</h3>
+                                ${ratingText}
+                             </div>
+                             <span class="closed-label hidden text-[10px] bg-red-600 text-white px-2 py-1 rounded-lg font-black uppercase">Closed</span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100 flex items-center gap-1">
+                                <i class="fas fa-location-dot text-[9px]"></i> ${resToCustDist.toFixed(1)} KM
+                            </span>
+                            <span class="text-[11px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100 flex items-center gap-1">
+                                <i class="fas fa-clock text-[9px]"></i> ${deliveryTimeRange} Min
+                            </span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-slate-300"></i>
+                </div>`; 
+            }); 
+        }
+
+        function filterRes(q) { renderResGrid(resCache); }
+
+        function openMenu(id, name) {
+            activeRes = resCache.find(r => r.idNo == id);
+            if(activeRes.isOff) return alert("রেস্টুরেন্টটি বন্ধ!");
+            cartData = {}; 
+            updateCartUI(); 
+            document.getElementById('menu-res-title').innerText = name; 
+            document.getElementById('food-search-input').value = ""; 
+            switchCustPage('menu');
+            db.ref(`menus/${id}`).on('value', snap => { 
+                menuCache = [];
+                snap.forEach(child => { 
+                    const f = child.val(); 
+                    if(f.available !== false) menuCache.push(f);
+                }); 
+                renderFoodItems(menuCache);
+            });
+        }
+
+        /* --- UPDATED PROFESSIONAL FOOD ITEMS RENDERING --- */
+        function renderFoodItems(items) {
+            const c = document.getElementById('food-list-container'); 
+            c.innerHTML = ""; 
+            if(items.length === 0) {
+                c.innerHTML = `<div class="text-center py-20 opacity-30 font-black italic">কোনো খাবার পাওয়া যায়নি</div>`;
+                return;
+            }
+            items.forEach(f => { 
+                const sn = f.name.replace(/['"\s]+/g, ''); 
+                const currentQty = cartData[f.name] ? cartData[f.name].qty : 0;
+                c.innerHTML += `
+                <div class="food-card animate-up">
+                    <img src="${f.image}" class="w-20 h-20 rounded-2xl object-cover">
+                    <div class="flex-1">
+                        <h4 class="font-black text-sm leading-tight mb-1">${f.name}</h4>
+                        <p class="text-red-600 font-black text-lg italic">৳ ${f.price}</p>
+                    </div>
+                    <div class="qty-container">
+                        <button onclick="modQty('${f.name}', ${f.price}, -1, '${sn}')" class="btn-qty btn-qty-minus">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span id="iq-${sn}" class="qty-text">${currentQty}</span>
+                        <button onclick="modQty('${f.name}', ${f.price}, 1, '${sn}')" class="btn-qty btn-qty-plus">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>`; 
+            }); 
+        }
+        /* ------------------------------------------------ */
+
+        function filterFoodItems(query) {
+            const q = query.toLowerCase();
+            const filtered = menuCache.filter(f => f.name.toLowerCase().includes(q));
+            renderFoodItems(filtered);
+        }
+
+        function switchCustPage(id) { 
+            document.querySelectorAll('.page-content').forEach(e => e.classList.add('hidden')); 
+            document.getElementById(`page-${id}`).classList.remove('hidden'); 
+            document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active-nav')); 
+            document.getElementById(`nav-${id==='menu'?'home':id}`)?.classList.add('active-nav'); 
+            if(id==='profile') initMap('prof'); 
+            if(id==='orders') loadOrderHistory(); 
+        }
+
+        function getDistance(la1, lo1, la2, lo2) { if(!la1 || !lo1 || !la2 || !lo2) return 999; const R = 6371; const dLat = (la2-la1)*Math.PI/180; const dLon = (lo2-lo1)*Math.PI/180; const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2); return R*(2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a))); }
+        
+        async function fetchAddress(lat, lng, id) { try { const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`); const d = await res.json(); document.getElementById(id).value = d.display_name; } catch(e){} }
+        
+        function initMap(t) {
+            setTimeout(() => {
+                if(t === 'reg' && !rMap) { 
+                    rMap = L.map('reg-map').setView([23.81, 90.41], 13); 
+                    L.tileLayer(TILE_URL, { attribution: ATTRIBUTION }).addTo(rMap); 
+                    rMarker = L.marker([23.81, 90.41], {draggable: true}).addTo(rMap); 
+                    rMarker.on('dragend', (e) => fetchAddress(e.target.getLatLng().lat, e.target.getLatLng().lng, 'reg-address')); 
+                }
+                else if(t === 'prof' && !pMap) { 
+                    pMap = L.map('profile-map').setView([user.lat||23.8, user.lng||90.4], 15); 
+                    L.tileLayer(TILE_URL, { attribution: ATTRIBUTION }).addTo(pMap); 
+                    pMarker = L.marker([user.lat||23.8, user.lng||90.4], {draggable: true}).addTo(pMap); 
+                    pMarker.on('dragend', (e) => fetchAddress(e.target.getLatLng().lat, e.target.getLatLng().lng, 'prof-address')); 
+                }
+            }, 500);
+        }
+
+        function autoLocate(t) { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { const ll = [pos.coords.latitude, pos.coords.longitude]; if(t === 'reg') { rMap.setView(ll, 17); rMarker.setLatLng(ll); fetchAddress(ll[0], ll[1], 'reg-address'); } else { pMap.setView(ll, 17); pMarker.setLatLng(ll); fetchAddress(ll[0], ll[1], 'prof-address'); } }); } }
+
+        function modQty(n, p, c, sn) { if(!cartData[n]) cartData[n] = { price: p, qty: 0 }; cartData[n].qty += c; if(cartData[n].qty <= 0) delete cartData[n]; const el = document.getElementById(`iq-${sn}`); if(el) el.innerText = cartData[n] ? cartData[n].qty : "0"; updateCartUI(); }
+        
+        function updateCartUI() { let t = 0, c = 0; for(let k in cartData) { t += (cartData[k].price * cartData[k].qty); c += cartData[k].qty; } const f = document.getElementById('cart-float'); if(c > 0) { f.classList.remove('hidden'); document.getElementById('cart-qty').innerText = c + " items"; document.getElementById('cart-sum').innerText = "৳ " + t; } else f.classList.add('hidden'); }
+        
+        function setTip(a) { selectedTip = (selectedTip === a) ? 0 : a; document.querySelectorAll('.tip-btn').forEach(b => { b.classList.remove('bg-red-600', 'text-white'); b.classList.add('bg-slate-50'); }); if(selectedTip > 0) { const btn = document.getElementById('tip-'+a); btn.classList.replace('bg-slate-50', 'bg-red-600'); btn.classList.add('text-white'); } calculateFinalBill(); }
+
+        function applyCoupon() {
+            const code = document.getElementById('coupon-input').value.trim().toUpperCase();
+            const msg = document.getElementById('coupon-msg');
+            msg.classList.remove('hidden', 'text-red-500', 'text-emerald-500');
+            if(!code) { alert("Please enter a code"); return; }
+            db.ref('coupons/' + code).once('value', snap => {
+                const data = snap.val();
+                if(data && data.active) {
+                    appliedCoupon = data;
+                    msg.innerText = `কুপন '${code}' সফলভাবে যোগ হয়েছে!`;
+                    msg.classList.add('text-emerald-500');
+                } else {
+                    appliedCoupon = null;
+                    msg.innerText = "ভুল কুপন কোড অথবা মেয়াদ শেষ!";
+                    msg.classList.add('text-red-500');
+                }
+                msg.classList.remove('hidden');
+                calculateFinalBill();
+            });
+        }
+        
+        function calculateFinalBill() {
+            let subtotal = 0; for(let k in cartData) { subtotal += (cartData[k].price * cartData[k].qty); }
+            const dist = getDistance(user.lat, user.lng, activeRes.lat, activeRes.lng);
+            let deliveryFee = Math.round(adminSettings.adminDeliveryFee + (dist * adminSettings.perKmFee) + (activeRes.deliveryCharge || 0));
+            const banner = document.getElementById('free-delivery-banner');
+            if(subtotal >= adminSettings.freeDeliveryLimit || (appliedCoupon && appliedCoupon.freeDelivery)) { deliveryFee = 0; banner.classList.remove('hidden'); } else banner.classList.add('hidden');
+            let discount = 0;
+            if(appliedCoupon) {
+                if(appliedCoupon.type === 'PERCENT') discount = Math.round((subtotal * appliedCoupon.value) / 100);
+                else if(appliedCoupon.type === 'FLAT') discount = appliedCoupon.value;
+            }
+            document.getElementById('bill-sub').innerText = "৳ " + subtotal; 
+            document.getElementById('bill-delivery').innerText = (deliveryFee === 0) ? "FREE" : "৳ " + deliveryFee;
+            if(discount > 0) { document.getElementById('discount-row').classList.remove('hidden'); document.getElementById('bill-discount').innerText = "- ৳ " + discount; } else document.getElementById('discount-row').classList.add('hidden');
+            if(selectedTip > 0) { document.getElementById('tip-row').classList.remove('hidden'); document.getElementById('bill-tip').innerText = "৳ " + selectedTip; } else document.getElementById('tip-row').classList.add('hidden');
+            const total = (subtotal + deliveryFee + selectedTip) - discount;
+            document.getElementById('final-bill-sum').innerText = "৳ " + (total < 0 ? 0 : total);
+        }
+
+        function removeItem(name) { delete cartData[name]; const sn = name.replace(/['"\s]+/g, ''); const el = document.getElementById(`iq-${sn}`); if(el) el.innerText = "0"; updateCartUI(); openCheckout(); }
+
+        function openCheckout() {
+            const l = document.getElementById('checkout-items-list'); l.innerHTML = ""; let count = 0;
+            for(let k in cartData) { 
+                count++; 
+                l.innerHTML += `
+                <div class="flex justify-between items-center py-4 text-sm font-bold text-slate-700">
+                    <div class="flex items-center gap-3">
+                        <button onclick="removeItem('${k}')" class="text-red-500 hover:text-red-700 mr-2 active:scale-90 transition-all">
+                            <i class="fas fa-trash-can"></i>
+                        </button>
+                        <span>${k} x ${cartData[k].qty}</span>
+                    </div>
+                    <span class="font-black text-slate-800">৳ ${cartData[k].price * cartData[k].qty}</span>
+                </div>`; 
+            }
+            if(count === 0) { document.getElementById('checkout-modal').classList.add('hidden'); return; }
+            appliedCoupon = null; document.getElementById('coupon-input').value = ""; document.getElementById('coupon-msg').classList.add('hidden');
+            calculateFinalBill(); document.getElementById('checkout-modal').classList.remove('hidden');
+        }
+
+        function placeFinalOrder() {
+            let its = []; for(let k in cartData) { its.push({ name: k, qty: cartData[k].qty, price: cartData[k].price }); }
+            const ord = { 
+                customerName: user.name, 
+                customerPhone: user.phone, 
+                customerAddress: (user.house ? user.house + ", " : "") + user.address, 
+                lat: user.lat, 
+                lng: user.lng, 
+                restaurantName: activeRes.name, 
+                restaurantId: activeRes.idNo, 
+                resLat: activeRes.lat, 
+                resLng: activeRes.lng, 
+                items: its, 
+                subtotal: document.getElementById('bill-sub').innerText.replace('৳ ', ''), 
+                deliveryCharge: document.getElementById('bill-delivery').innerText === 'FREE' ? 0 : document.getElementById('bill-delivery').innerText.replace('৳ ', ''), 
+                discount: document.getElementById('bill-discount').innerText.replace('- ৳ ', ''),
+                couponCode: appliedCoupon ? appliedCoupon.code : "",
+                tip: selectedTip, 
+                total: document.getElementById('final-bill-sum').innerText.replace('৳ ', ''), 
+                status: "PENDING", 
+                timestamp: Date.now() 
+            };
+            db.ref('orders').push(ord).then(() => { alert("সফলভাবে অর্ডার করা হয়েছে!"); cartData = {}; updateCartUI(); document.getElementById('checkout-modal').classList.add('hidden'); switchCustPage('orders'); });
+        }
+
+        function loadOrderHistory() {
+            db.ref('orders').orderByChild('customerPhone').equalTo(user.phone).on('value', snap => {
+                const l = document.getElementById('my-orders-list'); l.innerHTML = "";
+                let ords = []; snap.forEach(c => { let o = c.val(); o.orderId = c.key; ords.push(o); });
+                ords.sort((a,b) => b.timestamp - a.timestamp).forEach(o => {
+                    let ratingBtn = "";
+                    if(o.status === "DELIVERED" && !o.isRated) {
+                        ratingBtn = `<button onclick="openRatingModal('${o.orderId}', '${o.restaurantId}')" class="order-action-btn bg-yellow-50 text-yellow-600 border border-yellow-100"><i class="fas fa-star"></i> Rate</button>`;
+                    }
+                    
+                    const trackBtn = `<button onclick='trackLiveOrder(${JSON.stringify(o)})' class="order-action-btn bg-blue-600 text-white shadow-blue-100"><i class="fas fa-map-location-dot"></i> Track</button>`;
+                    const chatBtn = `<button onclick="openChat('${o.orderId}', '${o.riderName || 'Rider'}')" class="order-action-btn bg-emerald-50 text-emerald-600 border border-emerald-100"><i class="fas fa-comment-dots"></i> Chat</button>`;
+
+                    l.innerHTML += `
+                    <div class="bg-white p-6 rounded-[2.5rem] border shadow-sm relative mb-2 animate-up flex flex-col gap-4">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h4 class="font-black italic uppercase text-xl text-slate-800 leading-tight">${o.restaurantName}</h4>
+                                <p class="text-[9px] text-gray-400 font-bold mt-1">${new Date(o.timestamp).toLocaleString()}</p>
+                            </div>
+                            <span class="text-[9px] font-black uppercase text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-100">${o.status}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-red-600 font-black text-2xl italic">৳ ${o.total}</span>
+                            <div class="flex gap-2">
+                                ${ratingBtn}
+                                ${chatBtn}
+                                ${trackBtn}
+                            </div>
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+
+        function openRatingModal(oid, rid) { ratingOrderId = oid; ratingResId = rid; currentRating = 0; document.getElementById('rating-comment').value = ""; document.querySelectorAll('.star-btn').forEach(s => s.classList.remove('active')); document.getElementById('rating-modal').classList.remove('hidden'); }
+        function closeRatingModal() { document.getElementById('rating-modal').classList.add('hidden'); }
+        function setRating(r) { currentRating = r; const stars = document.querySelectorAll('.star-btn'); stars.forEach((s, i) => { if(i < r) s.classList.add('active'); else s.classList.remove('active'); }); }
+
+        function submitRating() {
+            if(currentRating === 0) return alert("দয়া করে একটি রেটিং দিন!");
+            const comment = document.getElementById('rating-comment').value;
+            const reviewData = { orderId: ratingOrderId, restaurantId: ratingResId, customerName: user.name, stars: currentRating, comment: comment, timestamp: Date.now() };
+            db.ref('ratings/' + ratingResId).push(reviewData).then(() => { db.ref(`orders/${ratingOrderId}`).update({ isRated: true }); alert("আপনার মতামতের জন্য ধন্যবাদ!"); closeRatingModal(); });
+        }
+
+        function trackLiveOrder(order) {
+            document.getElementById('tracking-modal').style.display = 'flex';
+            if(!tMap) { 
+                tMap = L.map('tracking-map', {zoomControl: false}).setView([order.lat, order.lng], 15); 
+                L.tileLayer(TILE_URL, { attribution: ATTRIBUTION }).addTo(tMap); 
+            } else { tMap.setView([order.lat, order.lng], 15); tMap.eachLayer(l => { if(l instanceof L.Marker) tMap.removeLayer(l); }); }
+            const uI = L.divIcon({ html: '<div style="background:#ef4444; width:40px; height:40px; border-radius:20px; border:4px solid white; display:flex; align-items:center; justify-content:center; color:white;"><i class="fas fa-home"></i></div>', className: '', iconSize:[40,40]});
+            const rI = L.divIcon({ html: '<div style="background:#1e293b; width:40px; height:40px; border-radius:20px; border:4px solid white; display:flex; align-items:center; justify-content:center; color:white;"><i class="fas fa-utensils"></i></div>', className: '', iconSize:[40,40]});
+            const cI = L.divIcon({ html: '<div style="background:#22c55e; width:45px; height:45px; border-radius:22px; border:4px solid white; display:flex; align-items:center; justify-content:center; color:white; box-shadow: 0 5px 15px rgba(0,0,0,0.2);"><i class="fas fa-motorcycle text-xl"></i></div>', className: '', iconSize:[45,45]});
+            L.marker([order.lat, order.lng], {icon: uI}).addTo(tMap); L.marker([order.resLat, order.resLng], {icon: rI}).addTo(tMap);
+            if (riderListener) riderListener.off(); riderMarker = null;
+            db.ref(`orders/${order.orderId}`).on('value', oS => {
+                const cO = oS.val();
+                if(cO.riderId) {
+                    document.getElementById('track-chat-btn').onclick = () => openChat(order.orderId, cO.riderName || "Rider");
+                    riderListener = db.ref(`riders/${cO.riderId}`);
+                    riderListener.on('value', rS => { const rD = rS.val(); if(rD && rD.lat) { document.getElementById('track-rider-name').innerText = rD.name; document.getElementById('track-rider-call').href = "tel:" + rD.phone; const pos = [rD.lat, rD.lng]; if(riderMarker) riderMarker.setLatLng(pos); else riderMarker = L.marker(pos, {icon: cI}).addTo(tMap); } });
+                } else { document.getElementById('track-rider-name').innerText = "Rider is assigning..."; }
+            });
+            setTimeout(() => tMap.invalidateSize(), 400);
+        }
+
+        function closeTracking() { document.getElementById('tracking-modal').style.display = 'none'; if(riderListener) riderListener.off(); }
+        function closeChat() { document.getElementById('chat-modal').classList.add('hidden'); if(activeChatOrderId) db.ref(`orders/${activeChatOrderId}/chat`).off(); }
+        
+        function sendMessage() {
+            const input = document.getElementById('chat-input'), text = input.value.trim();
+            if(!text || !activeChatOrderId) return;
+            db.ref(`orders/${activeChatOrderId}/chat`).push({ sender: 'customer', text: text, timestamp: Date.now() });
+            input.value = "";
+        }
+
+        function startOrderMonitor() {
+            db.ref('orders').orderByChild('customerPhone').equalTo(user.phone).on('value', snap => {
+                snap.forEach(child => {
+                    const orderId = child.key, order = child.val();
+                    if(!lastKnownOrderStates[orderId]) { lastKnownOrderStates[orderId] = { status: order.status }; return; }
+                    const oldStatus = lastKnownOrderStates[orderId].status;
+                    if(order.status !== oldStatus) {
+                        let title = "Update", msg = "", icon = "fa-bell", color = "bg-blue-600";
+                        switch(order.status) {
+                            case "ACCEPTED": title = "Order Accepted"; msg = `${order.restaurantName} আপনার অর্ডার গ্রহণ করেছে।`; icon = "fa-check-double"; color = "bg-emerald-500"; break;
+                            case "PICKED UP": title = "Picked Up"; msg = `রাইডার আপনার খাবার নিয়ে রেস্টুরেন্ট থেকে রওয়ানা দিয়েছে।`; icon = "fa-motorcycle"; color = "bg-orange-500"; break;
+                            case "ARRIVED": title = "Rider Arrived"; msg = `রাইডার আপনার ঠিকানায় পৌঁছেছে। অনুগ্রহ করে খাবার সংগ্রহ করুন।`; icon = "fa-map-marker-alt"; color = "bg-blue-600"; break;
+                            case "DELIVERED": title = "Completed"; msg = `আপনার অর্ডারটি সফলভাবে পৌঁছে দেওয়া হয়েছে। উপভোগ করুন!`; icon = "fa-heart"; color = "bg-red-600"; break;
+                        }
+                        showNotif(title, msg, icon, color); lastKnownOrderStates[orderId].status = order.status;
+                    }
+                });
+            });
+        }
+
+        function startChatMonitor() {
+            db.ref('orders').orderByChild('customerPhone').equalTo(user.phone).on('child_added', snap => {
+                const orderId = snap.key;
+                db.ref(`orders/${orderId}/chat`).limitToLast(1).on('child_added', msgSnap => {
+                    const msg = msgSnap.val();
+                    if (msg.sender === 'rider' && msg.timestamp > appStartTime) {
+                        if (!activeChatOrderId || activeChatOrderId !== orderId || document.getElementById('chat-modal').classList.contains('hidden')) {
+                            showNotif("Rider Message", msg.text, "fa-comment-dots", "bg-emerald-500");
+                        }
+                    }
+                });
+            });
+        }
+
+        function showNotif(title, msg, icon, colorClass) {
+            const toast = document.getElementById('notification-toast');
+            document.getElementById('notif-title').innerText = title;
+            document.getElementById('notif-msg').innerText = msg;
+            document.getElementById('notif-icon-bg').className = `w-16 h-16 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg shrink-0 ${colorClass}`;
+            document.getElementById('notif-icon').className = `fas ${icon}`;
+            toast.classList.add('show');
+            try { document.getElementById('notif-sound').play(); } catch(e) {}
+            setTimeout(hideNotif, 8000);
+        }
+
+        function hideNotif() { document.getElementById('notification-toast').classList.remove('show'); }
+
+        function showAuth(v) { 
+            document.querySelectorAll('.auth-view, .app-view').forEach(e => e.classList.remove('active')); 
+            document.getElementById(`view-${v}`).classList.add('active'); 
+            if(v === 'register') { initMap('reg'); speakHungry(); }
+        }
+        
+        function updateProfile() { 
+            const n = document.getElementById('prof-name').value; 
+            const h = document.getElementById('prof-house').value; 
+            const pos = pMarker.getLatLng(); 
+            db.ref('users/' + user.phone).update({ name: n, house: h, lat: pos.lat, lng: pos.lng }).then(() => {
+                user.name = n; user.house = h; user.lat = pos.lat; user.lng = pos.lng;
+                localStorage.setItem('fh_user', JSON.stringify(user)); alert("Profile Updated Successfully!");
+            }); 
+        }
+
+        function handleLogout() { localStorage.clear(); location.reload(); }
+
+        window.onload = () => { const saved = localStorage.getItem('fh_user'); if(saved) { user = JSON.parse(saved); startApp(); } else { showAuth('login'); } };
+
+        function openChat(orderId, riderName) {
+            activeChatOrderId = orderId;
+            document.getElementById('chat-title').innerText = riderName || "Rider Chat";
+            document.getElementById('chat-modal').classList.remove('hidden');
+            const chatBox = document.getElementById('chat-messages'); chatBox.innerHTML = "";
+            db.ref(`orders/${orderId}/chat`).off();
+            db.ref(`orders/${orderId}/chat`).on('child_added', snap => {
+                const msg = snap.val();
+                const type = msg.sender === 'customer' ? 'chat-sent' : 'chat-received';
+                chatBox.innerHTML += `<div class="chat-bubble ${type}">${msg.text}</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+                if(msg.sender === 'rider' && msg.timestamp > appStartTime) document.getElementById('chat-sound').play().catch(e => {});
+            });
+        }
+    </script>
+</body>
+</html>
